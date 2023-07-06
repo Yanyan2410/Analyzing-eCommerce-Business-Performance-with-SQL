@@ -1,0 +1,85 @@
+WITH mau as (
+	select 
+		year, 
+		floor(avg(customer_total)) as User_AVG_Per_Month
+	from (
+		select
+				date_part('year', od.order_purchase_timestamp) as year,
+				date_part('month', od.order_purchase_timestamp) as month,
+				COUNT(distinct cd.customer_unique_id) as customer_total
+		FROM orders_dataset AS od
+		join customers_dataset as cd
+			on od.customer_id = cd.customer_id
+		group by 1, 2) as tmp
+	group by 1
+),
+
+nc as (
+	select 
+	year, 
+	count(customer_unique_id) as total_new_customer
+from (
+	select
+		min(date_part('year', od.order_purchase_timestamp)) as year,
+		cd.customer_unique_id
+	from orders_dataset as od
+	join customers_dataset as cd
+		on cd.customer_id = od.customer_id
+	group by 2
+	) as tmp
+group by 1
+order by 1
+
+),
+
+ro as (
+	select
+		year,
+		count(customer_unique_id) as total_customer_repeat
+	from(
+		select 
+			date_part('year', od.order_purchase_timestamp) as year,
+			cd.customer_unique_id,
+			count(od.order_id) as total_order
+		from orders_dataset as od
+		join customers_dataset as cd
+			on od.customer_id = cd.customer_id
+		group by 1,2
+		having count(*) > 1) as tmp
+	group by 1
+),
+
+freq as (
+	select 
+		year,
+		round(avg(freq), 2) as avg_freq_order
+	from(
+		select
+			date_part('year', od.order_purchase_timestamp) as year,
+			cd.customer_unique_id,
+			count(order_id) as freq
+		from orders_dataset as od
+		join customers_dataset as cd
+			on cd.customer_id = od.customer_id
+		group by 1, 2
+		) as sub
+	group by 1
+)
+
+select
+	mau.year as year,
+	mau.User_AVG_Per_Month,
+	total_new_customer,
+	total_customer_repeat,
+	avg_freq_order
+from mau
+	join nc
+		on mau.year = nc.year
+	join ro
+		on nc.year = ro.year
+	join freq
+		on ro.year = freq.year
+;
+
+
+
