@@ -1,0 +1,107 @@
+Mini Project 1 SQL - Tugas 3
+
+Soal 1
+
+Membuat tabel yang berisi informasi pendapatan/revenue perusahaan total untuk masing-masing tahun
+
+create table revenue as
+	(select 
+		date_part('year', order_purchase_timestamp) as year,
+		sum(price + freight_value)
+	from orders_dataset as od
+	join order_items_dataset as oid
+		on od.order_id = oid.order_id
+	where order_status = 'delivered'
+	group by 1
+	order by 1)
+
+Soal 2
+
+Membuat tabel yang berisi informasi jumlah cancel order total untuk masing-masing tahun (Hint: Perhatikan filtering terhadap order status yang tepat untuk menghitung jumlah cancel order)
+
+
+create table canceled_order as
+	(select 
+			date_part('year', order_purchase_timestamp) as year,
+			count(order_status)
+		from orders_dataset as od
+		where order_status = 'canceled'
+		group by 1
+		order by 1
+	)
+
+
+
+Soal 3
+
+Membuat tabel yang berisi nama kategori produk yang memberikan pendapatan total tertinggi untuk masing-masing tahun (Hint: Perhatikan penggunaan window function dan juga filtering yang dilakukan
+
+
+create table top_product as	
+	(select
+		year,
+		product,
+		revenue
+	from
+		(select  
+			date_part('year', shipping_limit_date) as year,
+			product_category_name as product,
+			sum(price + freight_value) as revenue,
+			RANK() OVER (PARTITION BY date_part('year', shipping_limit_date)
+						 ORDER BY sum(price + freight_value) DESC) AS rank
+		from order_items_dataset as oid
+		join product_dataset as pi
+			on oid.product_id = pi.product_id
+		join orders_dataset as od
+			on oid.order_id = od.order_id
+		where order_status = 'delivered'
+		group by 1,2) as tmp
+	where rank = 1)
+
+Soal 4
+
+Membuat tabel yang berisi nama kategori produk yang memiliki jumlah cancel order terbanyak untuk masing-masing tahun (Hint: Perhatikan penggunaan window function dan juga filtering yang dilakukan)
+
+create table most_canceled_product as	
+	(select
+		year,
+		product,
+		total
+	from(
+		select 
+			date_part('year', shipping_limit_date) as year,
+			product_category_name as product,
+			count(order_status) as total,
+			RANK() OVER (PARTITION BY date_part('year', shipping_limit_date)
+								 ORDER BY count(order_status) DESC) AS rank
+		from orders_dataset as od
+		join order_items_dataset as oid
+			on od.order_id = oid.order_id
+		join product_dataset as pd
+			on oid.product_id = pd.product_id
+		where order_status = 'canceled'
+		group by 1,2) as tmp
+	where rank = 1)
+
+Soal 5
+
+Menggabungkan informasi-informasi yang telah didapatkan ke dalam satu tampilan tabel
+
+select 
+	mcp.year,
+	r.sum as reveue,
+	co.count as total_canceled,
+	tp.product as top_product,
+	tp.revenue as top_product_revenue,
+	mcp.product as most_canceled_product,
+	mcp.total as total_canceled_product
+from revenue as r
+full join canceled_order as co
+	on r.year = co.year
+full join top_product as tp
+	on r.year = tp.year
+full join most_canceled_product as mcp
+	on mcp.year = r.year
+
+
+

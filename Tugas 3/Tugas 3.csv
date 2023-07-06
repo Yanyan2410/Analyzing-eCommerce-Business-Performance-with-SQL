@@ -1,0 +1,6 @@
+"year","reveue","total_canceled","top_product","top_product_revenue","most_canceled_product","total_canceled_product"
+2016,46653.74,26,"furniture_decor",6899.35,"toys",3
+2017,6921535.24,265,"bed_bath_table",569964.78,"sports_leisure",24
+2018,8451584.77,334,"health_beauty",877065.73,"health_beauty",27
+NULL,NULL,NULL,"housewares",322.86,NULL,NULL
+2020,NULL,NULL,NULL,NULL,"housewares",1
